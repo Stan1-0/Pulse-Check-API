@@ -64,7 +64,7 @@ class HeartbeatView(APIView):
         except Monitor.DoesNotExist:
             return Response({"error": "Monitor not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if monitor.status == Monitor.Status.DOWN:
+        if monitor.status == Monitor.Status.INACTIVE:
             return Response(
                 {"error": "Monitor is down. Re-register to restart."},
                 status=status.HTTP_409_CONFLICT,
