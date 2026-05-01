@@ -31,7 +31,7 @@ class MonitorListCreateView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         monitor = serializer.save(
-            status=Monitor.Status.ACTIVE,
+            status=Monitor.STATUS.ACTIVE,
             expires_at=timezone.now() + timedelta(
                 seconds=serializer.validated_data["timeout"]
             ),
@@ -64,15 +64,15 @@ class HeartbeatView(APIView):
         except Monitor.DoesNotExist:
             return Response({"error": "Monitor not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if monitor.status == Monitor.Status.INACTIVE:
+        if monitor.status == Monitor.STATUS.INACTIVE:
             return Response(
                 {"error": "Monitor is inactive. Re-register to restart."},
                 status=status.HTTP_409_CONFLICT,
             )
 
-        monitor.status = Monitor.Status.ACTIVE
-        monitor.last_heartbeat = timezone.now()
-        monitor.save(update_fields=["status", "last_heartbeat"])
+        monitor.status = Monitor.STATUS.ACTIVE
+        monitor.last_checked = timezone.now()
+        monitor.save(update_fields=["status", "last_checked"])
         schedule_alert(monitor)  # resets the countdown
 
         return Response({"message": f"Heartbeat received. Timer reset to {monitor.timeout}s."})
@@ -85,13 +85,13 @@ class PauseView(APIView):
         except Monitor.DoesNotExist:
             return Response({"error": "Monitor not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if monitor.status == Monitor.Status.PAUSED:
+        if monitor.status == Monitor.STATUS.PAUSED:
             return Response({"message": "Already paused."})
 
         if monitor.celery_task_id:
             current_app.control.revoke(monitor.celery_task_id, terminate=True)
 
-        monitor.status = Monitor.Status.PAUSED
+        monitor.status = Monitor.STATUS.PAUSED
         monitor.celery_task_id = None
         monitor.save(update_fields=["status", "celery_task_id"])
 
