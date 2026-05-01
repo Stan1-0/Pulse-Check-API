@@ -66,7 +66,7 @@ class HeartbeatView(APIView):
 
         if monitor.status == Monitor.Status.INACTIVE:
             return Response(
-                {"error": "Monitor is down. Re-register to restart."},
+                {"error": "Monitor is inactive. Re-register to restart."},
                 status=status.HTTP_409_CONFLICT,
             )
 
