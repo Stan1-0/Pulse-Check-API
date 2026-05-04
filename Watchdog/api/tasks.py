@@ -27,4 +27,4 @@ def fire_alert(self, monitor_id):
     
     #loging the alert
     logger.critical(json.dumps(alert))
-    print(json.dumps(alert))
+    

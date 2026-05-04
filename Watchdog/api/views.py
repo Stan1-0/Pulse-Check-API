@@ -11,7 +11,7 @@ from .serializers import MonitorSerializer
 
 # Create your views here.
 def schedule_alert(monitor):
-    """Cancwel any existing task and schedule a new one"""
+    """Cancel any existing task and schedule a new one"""
     if monitor.celery_task_id:
         current_app.control.revoke(monitor.celery_task_id, terminate=True)
         
@@ -96,3 +96,24 @@ class PauseView(APIView):
         monitor.save(update_fields=["status", "celery_task_id"])
 
         return Response({"message": f"Monitor '{pk}' paused. No alerts will fire."})
+
+
+class ResumeView(APIView):
+    def post(self, request, pk):
+        try:
+            monitor = Monitor.objects.get(pk=pk)
+        except Monitor.DoesNotExist:
+            return Response({"error": "Monitor not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if monitor.status != Monitor.STATUS.PAUSED:
+            return Response(
+                {"error": f"Monitor is not paused (current status: '{monitor.status}')."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        monitor.status = Monitor.STATUS.ACTIVE
+        monitor.last_checked = timezone.now()
+        monitor.save(update_fields=["status", "last_checked"])
+        schedule_alert(monitor)
+
+        return Response({"message": f"Monitor '{pk}' resumed. Timer reset to {monitor.timeout}s."})
